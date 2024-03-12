@@ -282,6 +282,8 @@ class DiGModel(SplatfactoModel):
             )  # type: ignore
         if self.training:
             dino_feats = torch.where(dino_alpha[...,None] > 0, dino_feats / (dino_alpha[...,None].detach()), torch.zeros(self.config.dim, device=self.device))
+        if not self.training:
+            dino_feats[dino_alpha<.9]=0
         depth_im = None
         if self.config.output_depth_during_training or not self.training:
             depth_im = rasterize_gaussians(  # type: ignore
@@ -311,7 +313,7 @@ class DiGModel(SplatfactoModel):
         if outputs['dino'] is not None:
             gt = batch['dino']
             gt = resize(gt.permute(2,0,1), (outputs['dino'].shape[0],outputs['dino'].shape[1])).permute(1,2,0)
-            loss_dict['dino_loss'] = torch.nn.functional.huber_loss(outputs['dino'],gt)
+            loss_dict['dino_loss'] = torch.nn.functional.mse_loss(outputs['dino'],gt)
             if not hasattr(self,'nearest_ids') or self.num_points != self.nearest_ids.shape[0]:
                 from cuml.neighbors import NearestNeighbors
                 model = NearestNeighbors(n_neighbors=3)

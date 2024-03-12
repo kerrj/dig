@@ -208,9 +208,10 @@ dig_method = MethodSpecification(
         steps_per_save=2000,
         max_num_iterations=30000,
         mixed_precision=False,
-        pipeline=GarfieldGaussianPipelineConfig(#use this for overlaying dino on top of a garfield trained model
-        # pipeline=VanillaPipelineConfig(#use this for JUST training DINO
-            # garfield_ckpt = Path("outputs/colorful_mugs_colmap/garfield/2024-02-29_155234/config.yml")
+        # pipeline=GarfieldGaussianPipelineConfig(#use this for overlaying dino on top of a garfield trained model
+        pipeline=VanillaPipelineConfig(#use this for JUST training DINO
+            # garfield_ckpt = Path("outputs/colorful_mugs_colmap/garfield/2024-02-29_15523
+            # 4/config.yml")
             datamanager=DiGDataManagerConfig(
                 dataparser=NerfstudioDataParserConfig(load_3D_points=True,train_split_fraction=0.99),
             ),

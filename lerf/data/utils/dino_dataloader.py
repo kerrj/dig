@@ -8,6 +8,15 @@ from torchvision import transforms
 from typing import Tuple
 import numpy as np
 
+#Denoisier
+import os
+import sys
+from torch_kmeans import KMeans, CosineSimilarity
+parent_dir_path = os.path.abspath(os.path.join(__file__, '../../../../Denoising-ViT'))
+if parent_dir_path not in sys.path:
+    sys.path.append(parent_dir_path)
+import DenoisingViT
+
 def get_img_resolution(H, W, max_size = 840, p=14):
     if H<W:
         new_W = max_size
@@ -93,14 +102,18 @@ class DinoDataloader(FeatureDataloader):
         device: torch.device,
         image_list: torch.Tensor,
         cache_path: str = None,
-        pca_dim: int = 64
+        pca_dim: int = 64,
+        use_denoiser: bool = True,
     ):
         assert "image_shape" in cfg
         self.extractor = ViTExtractor(self.dino_model_type, self.dino_stride)
         self.pca_dim = pca_dim
+        self.use_denoiser = use_denoiser
         super().__init__(cfg, device, image_list, cache_path)
         print("Dino data shape", self.data.shape)
-
+        
+        
+           
     def create(self, image_list):
         self.data = self.get_dino_feats(image_list)
         data_shape = self.data.shape
@@ -112,12 +125,18 @@ class DinoDataloader(FeatureDataloader):
 
     def load(self):
         super().load()
-        cache_pca_path = self.cache_path.parent / ("pca.npy")
+        if self.use_denoiser:
+            cache_pca_path = self.cache_path.parent / ("denoised_pca.npy")
+        else:    
+            cache_pca_path = self.cache_path.parent / ("pca.npy")
         self.pca_matrix = torch.from_numpy(np.load(cache_pca_path)).to(self.device)
 
     def save(self):
         super().save()
-        cache_pca_path = self.cache_path.parent / ("pca.npy")
+        if self.use_denoiser:
+            cache_pca_path = self.cache_path.parent / ("denoised_pca.npy")
+        else:
+            cache_pca_path = self.cache_path.parent / ("pca.npy")
         np.save(cache_pca_path, self.pca_matrix.cpu().numpy())
 
     def get_dino_feats(self,image_list):
@@ -128,19 +147,69 @@ class DinoDataloader(FeatureDataloader):
                     ])
         preproc_image_lst = preprocess(image_list).to(self.device)
         dino_embeds = []
+        
+        if self.use_denoiser:
+            #arg
+            vit_type = "vit_base_patch14_dinov2.lvd142m"
+            vit_stride = 14
+            noise_map_height = 37
+            noise_map_width = 37
+            enable_pe = False
+            load_denoiser_from = parent_dir_path + '/better_DVT/denoiser_layernorm.pth'
+
+            
+            #load denoiser model
+            vit = DenoisingViT.ViTWrapper(
+            model_type=vit_type,
+                stride=vit_stride,)
+            vit = vit.to(self.device)
+            denoise_model = DenoisingViT.Denoiser(
+                noise_map_height=noise_map_height,
+                noise_map_width=noise_map_width,
+                feature_dim=vit.n_output_dims,
+                vit=vit,
+                enable_pe=enable_pe,
+            ).to(self.device)
+            if load_denoiser_from is not None:
+                freevit_model_ckpt = torch.load(load_denoiser_from)["denoiser"]
+                #modify the key to remove the trailing .0
+                freevit_model_ckpt = {key.replace('.0', '') if '.0' in key else key: value for key, value in freevit_model_ckpt.items()}
+                msg = denoise_model.load_state_dict(freevit_model_ckpt, strict=False)
+            for k in denoise_model.state_dict().keys():
+                if k in freevit_model_ckpt:
+                    print(k, "loaded")
+            for p in denoise_model.parameters():
+                p.requires_grad = False
+            denoise_model.eval()
+            denoise_model.to(self.device)
+           
         for image in tqdm(preproc_image_lst, desc="dino", total=len(image_list), leave=False):
             with torch.no_grad():
-                descriptors = self.extractor.extract_descriptors(
+                # DVT              
+                if self.use_denoiser:
+                    # denoiser
+                    image=image.unsqueeze(0)
+                    output_dict = denoise_model(image.to(self.device), return_dict=True)
+                    denoised_features = output_dict["pred_denoised_feats"].squeeze(0)
+                    denoised_features/=10
+                    dino_embeds.append(denoised_features.cpu().detach())
+                    
+                    # self.denoised_features = output_dict
+                    
+                else:
+                    descriptors = self.extractor.extract_descriptors(
                     image.unsqueeze(0),
                     [self.dino_layer],
                     self.dino_facet,
-                    self.dino_bin,
-                )
-            descriptors = descriptors.reshape(self.extractor.num_patches[0], self.extractor.num_patches[1], -1)
-            dino_embeds.append(descriptors.cpu().detach())
-
-
+                    self.dino_bin, 
+                    )             
+                    descriptors = descriptors.reshape(self.extractor.num_patches[0], self.extractor.num_patches[1], -1)
+                    dino_embeds.append(descriptors.cpu().detach())
+                
+         
+                
         return torch.stack(dino_embeds, dim=0)
+    
     def get_pca_feats(self,image_list):
         feats = self.get_dino_feats(image_list)
         data_shape = feats.shape
