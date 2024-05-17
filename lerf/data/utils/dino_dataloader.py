@@ -16,6 +16,7 @@ parent_dir_path = os.path.abspath(os.path.join(__file__, '../../../../Denoising-
 if parent_dir_path not in sys.path:
     sys.path.append(parent_dir_path)
 import DenoisingViT
+
 #usually 840 max size
 def get_img_resolution(H, W, max_size = 1260, p=14):
     if H<W:
@@ -25,6 +26,7 @@ def get_img_resolution(H, W, max_size = 1260, p=14):
         new_H = max_size
         new_W = (int((W/H)*max_size)//p)*p
     return new_H, new_W
+
 class DinoV2DataLoader(FeatureDataloader):
     model_type = "dinov2_vits14"
 

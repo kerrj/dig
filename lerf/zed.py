@@ -49,7 +49,8 @@ class Zed():
             if depth:
                 left_torch,right_torch = left.permute(2,0,1),right.permute(2,0,1)
                 flow = raft_inference(left_torch,right_torch,self.model)
-                depth = self.get_K()[0,0]*self.get_stereo_transform()[0,3]/(flow.abs()+self.cx_diff*1280)
+                fx = self.get_K()[0,0]*1280/1920
+                depth = fx*self.get_stereo_transform()[0,3]/(flow.abs()+self.cx_diff*1280)
             else:
                 depth = None
             return left, right, depth
@@ -93,9 +94,9 @@ def plotly_render(frame):
 if __name__ == "__main__":
     import torch
     from viser import ViserServer
-    zed = Zed()
+    zed = Zed("/home/justin/lerf/motion_vids/mac_charger_fold.svo2")
 
-    # zed.start_record("/home/justin/lerf/motion_vids/painter_dab.svo2")
+    # zed.start_record("/home/justin/lerf/motion_vids/mac_charger_fold.svo2")
     # # s = ViserServer()
     # import cv2
     # # fig=None
