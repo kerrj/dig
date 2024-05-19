@@ -228,18 +228,20 @@ dig_method = MethodSpecification(
             # garfield_ckpt = Path("outputs/nerfgun4/garfield/2024-05-06_100908/config.yml")
             # garfield_ckpt = Path("outputs/bww_faucet/garfield/2024-05-07_140338/config.yml")
             # garfield_ckpt = Path("outputs/buddha_balls_poly/garfield/2024-05-08_115907/config.yml")
-            garfield_ckpt = Path("outputs/painter_sculpture/garfield/2024-05-10_130257/config.yml")
+            # garfield_ckpt = Path("outputs/painter_sculpture/garfield/2024-05-10_130257/config.yml")
             # garfield_ckpt = Path("outputs/office_chair/garfield/2024-05-10_150230/config.yml")
             # garfield_ckpt = Path("outputs/cmk_tpose/garfield/2024-05-14_140318/config.yml")
             # garfield_ckpt = Path("outputs/mac_charger/garfield/2024-05-15_095130/config.yml")
-            # garfield_ckpt = Path("outputs/cal_bear/garfield/2024-05-15_160359/config.yml")
+            # garfield_ckpt = Path("outputs/cal_bear/garfield/2024-05-17_141946/config.yml")
+            garfield_ckpt = Path("outputs/mac_charger2/garfield/2024-05-17_151152/config.yml")
+            # garfield_ckpt = Path("outputs/glue_gun/garfield/2024-05-17_160116/config.yml")
         ),
         optimizers={
             "means": {
                 "optimizer": AdamOptimizerConfig(lr=1.6e-4, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(
-                    lr_final=1.6e-6,
-                    max_steps=30000,
+                    lr_final=1.6e-5,
+                    max_steps=6000,
                 ),
             },
             "features_dc": {
