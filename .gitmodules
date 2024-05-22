@@ -1,3 +1,6 @@
 [submodule "RAFT-Stereo"]
 	path = RAFT-Stereo
 	url = https://github.com/kerrj/RAFT-Stereo
+[submodule "Denoising-ViT"]
+	path = Denoising-ViT
+	url = https://github.com/kerrj/Denoising-ViT

@@ -21,7 +21,7 @@ class DiGModelConfig(SplatfactoModelConfig):
     _target: Type = field(default_factory=lambda: DiGModel)
     dim: int = 64
     """Output dimension of the feature rendering"""
-    rasterize_mode: Literal["classic", "antialiased"] = "antialiased"
+    rasterize_mode: Literal["classic", "antialiased"] = "classic"
     dino_rescale_factor: int = 6
     """
     How much to upscale rendered dino for supervision
@@ -223,7 +223,8 @@ class DiGModel(SplatfactoModel):
             sh_degree=sh_degree_to_use,
             sparse_grad=False,
             compute_means2d_absgrad=True,
-            radius_clip=0 if self.training else 1
+            radius_clip=0 if self.training else 1,
+            rasterize_mode=self.config.rasterize_mode,
         )
         if self.training and info['means2d'].requires_grad:
             info["means2d"].retain_grad()
@@ -278,6 +279,7 @@ class DiGModel(SplatfactoModel):
             render_mode="RGB",
             sparse_grad=False,
             backgrounds=torch.zeros((1,self.config.gaussian_dim), device=self.device),
+            rasterize_mode=self.config.rasterize_mode,
         )
         alpha_cutoff = 0 if self.training else .8
         dino_feats = torch.where(dino_alpha>alpha_cutoff,dino_feats/dino_alpha.detach(),torch.zeros(1,device='cuda'))

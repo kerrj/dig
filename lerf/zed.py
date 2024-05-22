@@ -94,7 +94,7 @@ def plotly_render(frame):
 if __name__ == "__main__":
     import torch
     from viser import ViserServer
-    zed = Zed("/home/justin/lerf/motion_vids/mac_charger_fold.svo2")
+    zed = Zed("/home/justin/lerf/motion_vids/painter_leg.svo2")
 
     # zed.start_record("/home/justin/lerf/motion_vids/mac_charger_fold.svo2")
     # # s = ViserServer()
@@ -117,6 +117,7 @@ if __name__ == "__main__":
 
     #code for visualizing poincloud
     import viser
+    from matplotlib import pyplot as plt
     import viser.transforms as tf
     v = ViserServer()
     gui_reset_up = v.add_gui_button(
@@ -133,22 +134,22 @@ if __name__ == "__main__":
         )
     while True:
         left,right,depth = zed.get_frame()
-        left=left.cpu().numpy()
+        left = left.cpu().numpy()
         depth = depth.cpu().numpy()
         # import matplotlib.pyplot as plt
-        # plt.imshow(left)
-        # plt.show()
-        K = zed.get_K()
-        T_world_camera = np.eye(4)
+        plt.imshow(left)
+        plt.show()
+        # K = zed.get_K()
+        # T_world_camera = np.eye(4)
 
-        img_wh = left.shape[:2][::-1]
+        # img_wh = left.shape[:2][::-1]
 
-        grid = (
-            np.stack(np.meshgrid(np.arange(img_wh[0]), np.arange(img_wh[1])), 2) + 0.5
-        )
+        # grid = (
+        #     np.stack(np.meshgrid(np.arange(img_wh[0]), np.arange(img_wh[1])), 2) + 0.5
+        # )
 
-        homo_grid = np.concatenate([grid,np.ones((grid.shape[0],grid.shape[1],1))],axis=2).reshape(-1,3)
-        local_dirs = np.matmul(np.linalg.inv(K),homo_grid.T).T
-        points = (local_dirs * depth.reshape(-1,1)).astype(np.float32)
-        points = points.reshape(-1,3)*2
-        v.add_point_cloud("points", points = points.reshape(-1,3), colors=left.reshape(-1,3),point_size=.001)
+        # homo_grid = np.concatenate([grid,np.ones((grid.shape[0],grid.shape[1],1))],axis=2).reshape(-1,3)
+        # local_dirs = np.matmul(np.linalg.inv(K),homo_grid.T).T
+        # points = (local_dirs * depth.reshape(-1,1)).astype(np.float32)
+        # points = points.reshape(-1,3)*2
+        # v.add_point_cloud("points", points = points.reshape(-1,3), colors=left.reshape(-1,3),point_size=.001)

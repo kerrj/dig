@@ -2,6 +2,10 @@
 **/__pycache__/
 *.py[cod]
 *$py.class
+renders/*
+renders_old/*
+motion_vids/*
+.vscode
 
 # C extensions
 *.so

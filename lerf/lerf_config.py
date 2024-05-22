@@ -215,7 +215,7 @@ dig_method = MethodSpecification(
                 dataparser=NerfstudioDataParserConfig(load_3D_points=True,train_split_fraction=0.99),
             ),
             model=DiGModelConfig(),
-            # garfield_ckpt=Path("outputs/garfield_plushie/garfield/2024-02-29_165759/config.yml")
+            garfield_ckpt=Path("outputs/garfield_plushie/garfield/2024-02-29_165759/config.yml")
             # garfield_ckpt = Path("outputs/articulated_objects/garfield/2024-04-15_222909/config.yml")
             # garfield_ckpt=Path("outputs/buddha_balls/garfield/2024-04-08_155953/config.yml")
             # garfield_ckpt = Path("outputs/table_scan/garfield/2024-03-21_120025/config.yml")
@@ -233,7 +233,7 @@ dig_method = MethodSpecification(
             # garfield_ckpt = Path("outputs/cmk_tpose/garfield/2024-05-14_140318/config.yml")
             # garfield_ckpt = Path("outputs/mac_charger/garfield/2024-05-15_095130/config.yml")
             # garfield_ckpt = Path("outputs/cal_bear/garfield/2024-05-17_141946/config.yml")
-            garfield_ckpt = Path("outputs/mac_charger2/garfield/2024-05-17_151152/config.yml")
+            # garfield_ckpt = Path("outputs/mac_charger2/garfield/2024-05-17_151152/config.yml")
             # garfield_ckpt = Path("outputs/glue_gun/garfield/2024-05-17_160116/config.yml")
         ),
         optimizers={
