@@ -44,16 +44,14 @@ class DiGModel(SplatfactoModel):
         self.click_gaussian = ViewerButton(name="Click Gaussian", cb_hook=self._click_gaussian)
         self.click_location = None
         self.click_handle = None
-        self.nn = tcnn.Network(
-            n_input_dims=self.config.gaussian_dim,
-            n_output_dims=self.config.dim,
-            network_config={
-                "otype": "FullyFusedMLP",
-                "activation": "ReLU",
-                "output_activation": "None",
-                "n_neurons": 64,
-                "n_hidden_layers": 3,
-            },
+        self.nn = torch.nn.Sequential(
+            torch.nn.Linear(self.config.gaussian_dim, 64,bias=False),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 64,bias=False),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 64,bias=False),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, self.config.dim,bias=False),
         )
     def load_state_dict(self, dict, **kwargs):  # type: ignore
         super().load_state_dict(dict, **kwargs)
@@ -272,7 +270,7 @@ class DiGModel(SplatfactoModel):
             quats=quats_crop.detach() / quats_crop.detach().norm(dim=-1, keepdim=True),
             scales=torch.exp(scales_crop.detach()),
             opacities=torch.sigmoid(opacities_crop.detach()).squeeze(-1),
-            colors=gauss_crops,
+            colors=gauss_crops if self.training else gauss_crops.detach(),
             viewmats=viewmat[None, :, :],  # [1, 4, 4]
             Ks=K[None],  # [1, 3, 3]
             width=dino_w,
@@ -290,7 +288,8 @@ class DiGModel(SplatfactoModel):
         dino_feats = torch.where(dino_alpha>cutoff,dino_feats/dino_alpha.detach(),torch.zeros(1,device='cuda'))
         # dino_feats = torch.where(dino_alpha[...,None] > 0, dino_feats / (dino_alpha[...,None].detach()), torch.zeros(self.config.gaussian_dim, device=self.device))
         nn_inputs = dino_feats.view(-1,self.config.gaussian_dim)
-        dino_feats = self.nn(nn_inputs.half()).float().view(dino_h,dino_w,-1)
+        dino_feats = self.nn(nn_inputs).view(dino_h,dino_w,-1)
+        # dino_feats = self.nn(nn_inputs.half()).float().view(dino_h,dino_w,-1)
         
         out = {"rgb": rgb, "depth": depth_im, "accumulation": alpha, "background": background,'dino':dino_feats,'dino_alpha':dino_alpha[..., None]}
         if hasattr(self,'click_feat') and not self.training and dino_feats is not None:
