@@ -8,6 +8,7 @@ from nerfstudio.viewer.viewer_elements import *
 from nerfstudio.models.splatfacto import SplatfactoModelConfig, SplatfactoModel
 # from gsplat.project_gaussians import project_gaussians
 # from gsplat.rasterize import rasterize_gaussians
+from nerfstudio.cameras.camera_optimizers import CameraOptimizer, CameraOptimizerConfig
 from gsplat.rendering import rasterization
 from nerfstudio.model_components import renderers
 from nerfstudio.viewer.viewer_elements import *
@@ -21,7 +22,7 @@ class DiGModelConfig(SplatfactoModelConfig):
     _target: Type = field(default_factory=lambda: DiGModel)
     dim: int = 64
     """Output dimension of the feature rendering"""
-    rasterize_mode: Literal["classic", "antialiased"] = "classic"
+    rasterize_mode: Literal["classic", "antialiased"] = "antialiased"
     dino_rescale_factor: int = 6
     """
     How much to upscale rendered dino for supervision
@@ -29,6 +30,8 @@ class DiGModelConfig(SplatfactoModelConfig):
     num_downscales: int = 0
     gaussian_dim:int = 32
     """Dimension the gaussians actually store as features"""
+    camera_optimizer: CameraOptimizerConfig = field(default_factory=lambda: CameraOptimizerConfig(mode="SO3xR3"))
+    max_gauss_ratio: float = 5.0
 
 class DiGModel(SplatfactoModel):
     config: DiGModelConfig
@@ -49,7 +52,7 @@ class DiGModel(SplatfactoModel):
                 "activation": "ReLU",
                 "output_activation": "None",
                 "n_neurons": 64,
-                "n_hidden_layers": 2,
+                "n_hidden_layers": 3,
             },
         )
     def load_state_dict(self, dict, **kwargs):  # type: ignore
@@ -137,6 +140,7 @@ class DiGModel(SplatfactoModel):
 
         # get the background color
         if self.training:
+            optimized_camera_to_world = self.camera_optimizer.apply_to_camera(camera)
             if self.config.background_color == "random":
                 background = torch.rand(3, device=self.device)
             elif self.config.background_color == "white":
@@ -146,6 +150,7 @@ class DiGModel(SplatfactoModel):
             else:
                 background = self.background_color.to(self.device)
         else:
+            optimized_camera_to_world = camera.camera_to_worlds
             if renderers.BACKGROUND_COLOR_OVERRIDE is not None:
                 background = renderers.BACKGROUND_COLOR_OVERRIDE.to(self.device)
             else:
@@ -161,8 +166,8 @@ class DiGModel(SplatfactoModel):
         else:
             crop_ids = None
         # shift the camera to center of scene looking at center
-        R = camera.camera_to_worlds[0, :3, :3]  # 3 x 3
-        T = camera.camera_to_worlds[0, :3, 3:4]  # 3 x 1
+        R = optimized_camera_to_world[0, :3, :3]  # 3 x 3
+        T = optimized_camera_to_world[0, :3, 3:4]  # 3 x 1
         # flip the z and y axes to align with gsplat conventions
         R_edit = torch.diag(torch.tensor([1, -1, -1], device=self.device, dtype=R.dtype))
         R = R @ R_edit
@@ -281,8 +286,8 @@ class DiGModel(SplatfactoModel):
             backgrounds=torch.zeros((1,self.config.gaussian_dim), device=self.device),
             rasterize_mode=self.config.rasterize_mode,
         )
-        alpha_cutoff = 0 if self.training else .8
-        dino_feats = torch.where(dino_alpha>alpha_cutoff,dino_feats/dino_alpha.detach(),torch.zeros(1,device='cuda'))
+        cutoff = 0 if self.training else .8
+        dino_feats = torch.where(dino_alpha>cutoff,dino_feats/dino_alpha.detach(),torch.zeros(1,device='cuda'))
         # dino_feats = torch.where(dino_alpha[...,None] > 0, dino_feats / (dino_alpha[...,None].detach()), torch.zeros(self.config.gaussian_dim, device=self.device))
         nn_inputs = dino_feats.view(-1,self.config.gaussian_dim)
         dino_feats = self.nn(nn_inputs.half()).float().view(dino_h,dino_w,-1)
@@ -309,4 +314,13 @@ class DiGModel(SplatfactoModel):
             # encourage the nearest neighbors to have similar dino feats
             if self.step>1000:
                 loss_dict['dino_nn_loss'] = .01*self.gauss_params['dino_feats'][self.nearest_ids].var(dim=1).sum()
+        scale_exp = torch.exp(self.scales)
+        scale_reg = (
+            torch.maximum(
+                scale_exp.amax(dim=-1) / scale_exp.amin(dim=-1),
+                torch.tensor(self.config.max_gauss_ratio),
+            )
+            - self.config.max_gauss_ratio
+        )
+        loss_dict['scale_reg'] = 0.05 * scale_reg.sum()
         return loss_dict

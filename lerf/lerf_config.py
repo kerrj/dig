@@ -207,7 +207,7 @@ dig_method = MethodSpecification(
         method_name="dig",
         steps_per_eval_batch=500,
         steps_per_save=2000,
-        max_num_iterations=6000,
+        max_num_iterations=8000,
         mixed_precision=False,
         pipeline=GarfieldGaussianPipelineConfig(#use this for overlaying dino on top of a garfield trained model
         # pipeline=VanillaPipelineConfig(#use this for JUST training DINO
@@ -215,12 +215,11 @@ dig_method = MethodSpecification(
                 dataparser=NerfstudioDataParserConfig(load_3D_points=True,train_split_fraction=0.99),
             ),
             model=DiGModelConfig(),
-            garfield_ckpt=Path("outputs/garfield_plushie/garfield/2024-02-29_165759/config.yml")
+            # garfield_ckpt=Path("outputs/garfield_plushie/garfield/2024-02-29_165759/config.yml")
             # garfield_ckpt = Path("outputs/articulated_objects/garfield/2024-04-15_222909/config.yml")
             # garfield_ckpt=Path("outputs/buddha_balls/garfield/2024-04-08_155953/config.yml")
             # garfield_ckpt = Path("outputs/table_scan/garfield/2024-03-21_120025/config.yml")
             # garfield_ckpt = Path("outputs/tissue_scan/garfield/2024-03-21_135147/config.yml")
-            # garfield_ckpt = Path("outputs/boops_mug/garfield/2024-03-18_180854/config.yml")
             # garfield_ckpt = Path("outputs/matt_hand/garfield/2024-05-02_164559/config.yml")
             # garfield_ckpt = Path("outputs/nerfgun2/garfield/2024-03-13_140635/config.yml")
             # garfield_ckpt = Path("outputs/nerfgun3/garfield/2024-05-03_165745/config.yml")
@@ -228,6 +227,7 @@ dig_method = MethodSpecification(
             # garfield_ckpt = Path("outputs/nerfgun4/garfield/2024-05-06_100908/config.yml")
             # garfield_ckpt = Path("outputs/bww_faucet/garfield/2024-05-07_140338/config.yml")
             # garfield_ckpt = Path("outputs/buddha_balls_poly/garfield/2024-05-08_115907/config.yml")
+            # garfield_ckpt = Path("outputs/buddha_balls_poly/garfield/2024-05-23_161342/config.yml")
             # garfield_ckpt = Path("outputs/painter_sculpture/garfield/2024-05-10_130257/config.yml")
             # garfield_ckpt = Path("outputs/office_chair/garfield/2024-05-10_150230/config.yml")
             # garfield_ckpt = Path("outputs/cmk_tpose/garfield/2024-05-14_140318/config.yml")
@@ -241,7 +241,7 @@ dig_method = MethodSpecification(
                 "optimizer": AdamOptimizerConfig(lr=1.6e-4, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(
                     lr_final=1.6e-5,
-                    max_steps=6000,
+                    max_steps=8000,
                 ),
             },
             "features_dc": {
@@ -268,16 +268,22 @@ dig_method = MethodSpecification(
                 "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(
                     lr_final=1e-3,
-                    max_steps=6000,
+                    max_steps=8000,
                 ),
             },
             "nn_projection": {
                 "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(
                     lr_final=1e-3,
-                    max_steps=6000,
+                    max_steps=8000,
                 ),
             },
+            "camera_opt": {
+            "optimizer": AdamOptimizerConfig(lr=5e-5, eps=1e-15),
+            "scheduler": ExponentialDecaySchedulerConfig(
+                lr_final=5e-7, max_steps=6000, warmup_steps=500, lr_pre_warmup=0
+            ),
+        }
         },
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
