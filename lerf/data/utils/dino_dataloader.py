@@ -16,7 +16,7 @@ parent_dir_path = os.path.abspath(os.path.join(__file__, '../../../../Denoising-
 if parent_dir_path not in sys.path:
     sys.path.append(parent_dir_path)
 import DenoisingViT
-#usually 1260 max size
+#usually 1260 max size, 1050 for vit-L with ROI
 def get_img_resolution(H, W, max_size = 1050, p=14):
     if H<W:
         new_W = max_size

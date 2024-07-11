@@ -226,6 +226,7 @@ class DiGModel(SplatfactoModel):
             sparse_grad=False,
             absgrad=True,
             rasterize_mode=self.config.rasterize_mode,
+            tile_size=10
             # set some threshold to disregrad small gaussians for faster rendering.
             # radius_clip=3.0,
         )
@@ -270,6 +271,7 @@ class DiGModel(SplatfactoModel):
             sparse_grad=False,
             absgrad=False,
             rasterize_mode=self.config.rasterize_mode,
+            tile_size = 10
         )
         feat_shape = dino_feats.shape
 
